@@ -650,10 +650,10 @@
         const SUPABASE_URL = 'https://jysfhevparqmvmzwegox.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5c2ZoZXZwYXJxbXZtendlZ294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjUzMTMsImV4cCI6MjA5NDgwMTMxM30.2JlAReEQ8F12qxXgDKqvjNnO8_DLA0t2S4H24K3tT-Q';
         
-        let supabase = null;
+        let supabaseClient = null;
         try {
             if (window.supabase) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             } else {
                 console.error("Supabase library not loaded.");
             }
@@ -721,10 +721,10 @@
         // Initialize App
         async function init() {
             try {
-                if (!supabase) throw new Error("Supabase no está disponible.");
+                if (!supabaseClient) throw new Error("Supabase no está disponible.");
 
                 // 1. Anonymous Login
-                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                const { data: authData, error: authError } = await supabaseClient.auth.signInAnonymously();
                 if (authError) throw authError;
                 
                 state.userId = authData.user.id;
@@ -733,7 +733,7 @@
                 await new Promise(r => setTimeout(r, 500));
 
                 // 2. Fetch Profile (Coins & Theme)
-                const { data: profile } = await supabase
+                const { data: profile } = await supabaseClient
                     .from('user_profiles')
                     .select('*')
                     .eq('user_id', state.userId)
@@ -745,7 +745,7 @@
                 }
 
                 // 3. Fetch Unlocked Rewards
-                const { data: rewards } = await supabase
+                const { data: rewards } = await supabaseClient
                     .from('user_rewards')
                     .select('reward_id')
                     .eq('user_id', state.userId);
@@ -755,7 +755,7 @@
                 }
 
                 // 4. Fetch Tasks
-                const { data: tasks } = await supabase
+                const { data: tasks } = await supabaseClient
                     .from('user_tasks')
                     .select('*')
                     .eq('user_id', state.userId)
@@ -836,7 +836,7 @@
             updateCoinsUI();
             
             try {
-                await supabase
+                await supabaseClient
                     .from('user_profiles')
                     .update({ coins: state.coins })
                     .eq('user_id', state.userId);
@@ -855,7 +855,7 @@
             btnAddTask.disabled = true;
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('user_tasks')
                     .insert({ user_id: state.userId, name: text })
                     .select()
@@ -893,7 +893,7 @@
                 }
                 renderTasks();
 
-                await supabase.from('user_tasks').delete().eq('id', task.id);
+                await supabaseClient.from('user_tasks').delete().eq('id', task.id);
             } catch (err) {
                 console.error("Error deleting task", err);
                 // Revert if error? For now just log it.
@@ -1013,7 +1013,7 @@
 
             // Remove task from DB and List
             if (state.activeTask) {
-                await supabase.from('user_tasks').delete().eq('id', state.activeTask.id);
+                await supabaseClient.from('user_tasks').delete().eq('id', state.activeTask.id);
                 state.tasks = state.tasks.filter(t => t.id !== state.activeTask.id);
                 state.selectedTaskIndex = null;
                 renderTasks();
@@ -1049,7 +1049,7 @@
                 await addCoins(-cost);
                 
                 // Save reward
-                await supabase.from('user_rewards').insert({ user_id: state.userId, reward_id: itemId });
+                await supabaseClient.from('user_rewards').insert({ user_id: state.userId, reward_id: itemId });
                 
                 state.unlockedRewards.push(itemId);
                 updateStoreButtons();
@@ -1092,7 +1092,7 @@
         async function applyTheme(themeName) {
             applyThemeUI(themeName);
             try {
-                await supabase
+                await supabaseClient
                     .from('user_profiles')
                     .update({ current_theme: themeName })
                     .eq('user_id', state.userId);
