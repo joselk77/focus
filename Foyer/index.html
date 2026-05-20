@@ -13,6 +13,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --bg-color: #f0f4f8;
@@ -67,6 +70,27 @@
             overflow: hidden;
             position: relative;
         }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Animated Background Blobs */
         .blobs {
@@ -467,6 +491,12 @@
 </head>
 <body data-theme="default">
 
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 1rem; font-weight: 600;">Cargando datos...</p>
+    </div>
+
     <!-- Blobs Background -->
     <div class="blobs">
         <div class="blob blob-1"></div>
@@ -616,14 +646,20 @@
     <audio id="beep-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
+        // Supabase Initialization
+        const SUPABASE_URL = 'https://jysfhevparqmvmzwegox.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5c2ZoZXZwYXJxbXZtendlZ294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjUzMTMsImV4cCI6MjA5NDgwMTMxM30.2JlAReEQ8F12qxXgDKqvjNnO8_DLA0t2S4H24K3tT-Q';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // State Management
         let state = {
-            coins: parseInt(localStorage.getItem('focus_coins')) || 0,
-            unlockedRewards: JSON.parse(localStorage.getItem('focus_rewards')) || ['default'],
-            currentTheme: localStorage.getItem('focus_theme') || 'default',
-            tasks: JSON.parse(localStorage.getItem('focus_tasks')) || [],
+            userId: null,
+            coins: 0,
+            unlockedRewards: ['default'],
+            currentTheme: 'default',
+            tasks: [], // Now array of objects {id, name}
             selectedTaskIndex: null,
-            activeTask: null,
+            activeTask: null, // Stores the task object
             intervalMins: 5,
             timerId: null,
             timeLeft: 0,
@@ -639,6 +675,7 @@
             store: document.getElementById('screen-store')
         };
         
+        const loadingOverlay = document.getElementById('loading-overlay');
         const coinCountEl = document.getElementById('coin-count');
         const newTaskInput = document.getElementById('new-task');
         const taskListEl = document.getElementById('task-list');
@@ -671,14 +708,71 @@
             sound: 5
         };
 
-        // Initialize
-        function init() {
-            updateCoins(0);
-            applyTheme(state.currentTheme);
-            updateStoreButtons();
-            renderTasks();
+        // Initialize App
+        async function init() {
+            try {
+                // 1. Anonymous Login
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                if (authError) throw authError;
+                
+                state.userId = authData.user.id;
+
+                // Wait briefly in case the database trigger needs a moment to create the profile
+                await new Promise(r => setTimeout(r, 500));
+
+                // 2. Fetch Profile (Coins & Theme)
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('user_id', state.userId)
+                    .single();
+                
+                if (profile) {
+                    state.coins = profile.coins;
+                    state.currentTheme = profile.current_theme;
+                }
+
+                // 3. Fetch Unlocked Rewards
+                const { data: rewards } = await supabase
+                    .from('user_rewards')
+                    .select('reward_id')
+                    .eq('user_id', state.userId);
+                
+                if (rewards) {
+                    state.unlockedRewards = rewards.map(r => r.reward_id);
+                }
+
+                // 4. Fetch Tasks
+                const { data: tasks } = await supabase
+                    .from('user_tasks')
+                    .select('*')
+                    .eq('user_id', state.userId)
+                    .order('created_at', { ascending: true });
+                
+                if (tasks) {
+                    state.tasks = tasks;
+                }
+
+                // Initialize UI
+                updateCoinsUI();
+                applyThemeUI(state.currentTheme);
+                updateStoreButtons();
+                renderTasks();
+
+            } catch (err) {
+                console.error("Initialization error:", err);
+                showMessage("Error al conectar con la base de datos", "danger");
+            } finally {
+                // Hide loading screen
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => loadingOverlay.style.display = 'none', 500);
+            }
             
-            // Event Listeners
+            // Event Listeners setup
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
             btnAddTask.addEventListener('click', addTask);
             newTaskInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') addTask();
@@ -720,43 +814,78 @@
             hideMessage();
         }
 
-        // Coins and Storage
-        function updateCoins(amount) {
-            state.coins += amount;
+        // Coins updates
+        function updateCoinsUI() {
             coinCountEl.textContent = state.coins;
-            localStorage.setItem('focus_coins', state.coins);
         }
 
-        function saveRewards() {
-            localStorage.setItem('focus_rewards', JSON.stringify(state.unlockedRewards));
-        }
-
-        function saveTasks() {
-            localStorage.setItem('focus_tasks', JSON.stringify(state.tasks));
+        async function addCoins(amount) {
+            state.coins += amount;
+            updateCoinsUI();
+            
+            try {
+                await supabase
+                    .from('user_profiles')
+                    .update({ coins: state.coins })
+                    .eq('user_id', state.userId);
+            } catch (err) {
+                console.error("Failed to save coins to DB", err);
+            }
         }
 
         // Task List Management
-        function addTask() {
+        async function addTask() {
             const text = newTaskInput.value.trim();
             if (!text) return;
             
-            state.tasks.push(text);
-            newTaskInput.value = '';
-            saveTasks();
-            renderTasks();
+            // Disable input while saving
+            newTaskInput.disabled = true;
+            btnAddTask.disabled = true;
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_tasks')
+                    .insert({ user_id: state.userId, name: text })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    state.tasks.push(data);
+                    newTaskInput.value = '';
+                    renderTasks();
+                }
+            } catch (err) {
+                console.error("Error adding task", err);
+                showMessage("Error al guardar la tarea", "danger");
+            } finally {
+                newTaskInput.disabled = false;
+                btnAddTask.disabled = false;
+                newTaskInput.focus();
+            }
         }
 
-        function deleteTask(index, event) {
-            event.stopPropagation(); // Prevent selecting the task
-            state.tasks.splice(index, 1);
-            if (state.selectedTaskIndex === index) {
-                state.selectedTaskIndex = null;
-                btnStart.disabled = true;
-            } else if (state.selectedTaskIndex > index) {
-                state.selectedTaskIndex--;
+        async function deleteTask(index, event) {
+            event.stopPropagation();
+            const task = state.tasks[index];
+            
+            try {
+                // Optimistic UI update
+                state.tasks.splice(index, 1);
+                if (state.selectedTaskIndex === index) {
+                    state.selectedTaskIndex = null;
+                    btnStart.disabled = true;
+                } else if (state.selectedTaskIndex > index) {
+                    state.selectedTaskIndex--;
+                }
+                renderTasks();
+
+                await supabase.from('user_tasks').delete().eq('id', task.id);
+            } catch (err) {
+                console.error("Error deleting task", err);
+                // Revert if error? For now just log it.
             }
-            saveTasks();
-            renderTasks();
         }
 
         function selectTask(index) {
@@ -778,8 +907,8 @@
                 const li = document.createElement('li');
                 li.className = `task-item ${state.selectedTaskIndex === index ? 'selected' : ''}`;
                 li.innerHTML = `
-                    <span>${task}</span>
-                    <button class="delete-btn" title="Eliminar task">✕</button>
+                    <span>${task.name}</span>
+                    <button class="delete-btn" title="Eliminar tarea">✕</button>
                 `;
                 
                 li.addEventListener('click', () => selectTask(index));
@@ -793,13 +922,12 @@
         function startTask() {
             if (state.selectedTaskIndex === null) return;
             
-            const taskName = state.tasks[state.selectedTaskIndex];
-            state.activeTask = taskName;
+            state.activeTask = state.tasks[state.selectedTaskIndex];
             state.timeLeft = state.intervalMins * 60;
             state.startTime = new Date();
             state.coinsEarnedThisSession = 0;
 
-            activeTaskTitleEl.textContent = `Enfocado en: ${taskName}`;
+            activeTaskTitleEl.textContent = `Enfocado en: ${state.activeTask.name}`;
             updateTimerDisplay();
             
             switchScreen('active');
@@ -825,24 +953,24 @@
         }
 
         function showCheckin() {
-            modalText.textContent = `¿Sigues ejecutando la tarea: "${state.activeTask}"?`;
+            modalText.textContent = `¿Sigues ejecutando la tarea: "${state.activeTask.name}"?`;
             modalCheckin.classList.add('active');
             
             document.getElementById('beep-sound').play().catch(e => console.log('Audio play blocked'));
 
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification("Check-in de Enfoque", {
-                    body: `¿Sigues ejecutando: ${state.activeTask}?`,
+                    body: `¿Sigues ejecutando: ${state.activeTask.name}?`,
                     icon: "https://cdn-icons-png.flaticon.com/512/2097/2097276.png"
                 });
             }
         }
 
-        function handleCheckin(isStillWorking) {
+        async function handleCheckin(isStillWorking) {
             modalCheckin.classList.remove('active');
             
             if (isStillWorking) {
-                updateCoins(1);
+                await addCoins(1);
                 state.coinsEarnedThisSession += 1;
                 showMessage('¡Genial! Sumas 1 moneda.', 'success');
             } else {
@@ -854,12 +982,12 @@
             startTimer();
         }
 
-        function completeTask() {
+        async function completeTask() {
             clearInterval(state.timerId);
             
             // Calculate bonus
             const bonus = 5;
-            updateCoins(bonus);
+            await addCoins(bonus);
             state.coinsEarnedThisSession += bonus;
 
             // Prepare summary
@@ -867,15 +995,15 @@
             const diffMs = endTime - state.startTime;
             const diffMins = Math.round(diffMs / 60000);
 
-            document.getElementById('summary-task-name').textContent = state.activeTask;
+            document.getElementById('summary-task-name').textContent = state.activeTask.name;
             document.getElementById('summary-time').textContent = `${diffMins} minutos`;
             document.getElementById('summary-coins').textContent = state.coinsEarnedThisSession;
 
-            // Remove task from list
-            if (state.selectedTaskIndex !== null) {
-                state.tasks.splice(state.selectedTaskIndex, 1);
+            // Remove task from DB and List
+            if (state.activeTask) {
+                await supabase.from('user_tasks').delete().eq('id', state.activeTask.id);
+                state.tasks = state.tasks.filter(t => t.id !== state.activeTask.id);
                 state.selectedTaskIndex = null;
-                saveTasks();
                 renderTasks();
             }
 
@@ -893,7 +1021,7 @@
         }
 
         // Store Logic
-        function buyReward(itemId, cost) {
+        async function buyReward(itemId, cost) {
             if (state.coins < cost) {
                 alert('No tienes suficientes monedas.');
                 return;
@@ -904,16 +1032,26 @@
                 return;
             }
 
-            updateCoins(-cost);
-            state.unlockedRewards.push(itemId);
-            saveRewards();
-            updateStoreButtons();
-            
-            if (itemId === 'dark' || itemId === 'ocean') {
-                applyTheme(itemId);
+            try {
+                // Deduct coins
+                await addCoins(-cost);
+                
+                // Save reward
+                await supabase.from('user_rewards').insert({ user_id: state.userId, reward_id: itemId });
+                
+                state.unlockedRewards.push(itemId);
+                updateStoreButtons();
+                
+                if (itemId === 'dark' || itemId === 'ocean') {
+                    await applyTheme(itemId);
+                }
+                
+                showMessage(`¡Comprado con éxito!`, 'success');
+            } catch (err) {
+                console.error("Error buying reward", err);
+                showMessage("Error al procesar la compra", "danger");
+                // Rollback coins if necessary (edge case)
             }
-            
-            showMessage(`¡Comprado con éxito!`, 'success');
         }
 
         function updateStoreButtons() {
@@ -933,11 +1071,22 @@
             }
         }
 
-        function applyTheme(themeName) {
+        function applyThemeUI(themeName) {
             document.body.setAttribute('data-theme', themeName);
             state.currentTheme = themeName;
-            localStorage.setItem('focus_theme', themeName);
             updateStoreButtons();
+        }
+
+        async function applyTheme(themeName) {
+            applyThemeUI(themeName);
+            try {
+                await supabase
+                    .from('user_profiles')
+                    .update({ current_theme: themeName })
+                    .eq('user_id', state.userId);
+            } catch (err) {
+                console.error("Failed to save theme to DB", err);
+            }
         }
 
         function showMessage(text, type = 'default') {
@@ -962,7 +1111,8 @@
             messageBanner.className = 'message-banner';
         }
 
-        init();
+        // Start app once DOM is loaded
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
