@@ -649,7 +649,17 @@
         // Supabase Initialization
         const SUPABASE_URL = 'https://jysfhevparqmvmzwegox.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5c2ZoZXZwYXJxbXZtendlZ294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjUzMTMsImV4cCI6MjA5NDgwMTMxM30.2JlAReEQ8F12qxXgDKqvjNnO8_DLA0t2S4H24K3tT-Q';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let supabase = null;
+        try {
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else {
+                console.error("Supabase library not loaded.");
+            }
+        } catch(e) {
+            console.error("Error creating Supabase client:", e);
+        }
 
         // State Management
         let state = {
@@ -711,6 +721,8 @@
         // Initialize App
         async function init() {
             try {
+                if (!supabase) throw new Error("Supabase no está disponible.");
+
                 // 1. Anonymous Login
                 const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
                 if (authError) throw authError;
