@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusNow - Gestiona tu Atención</title>
+    <meta name="description" content="Una aplicación web móvil minimalista para gestionar tareas y mantener la concentración usando el método Pomodoro.">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <main class="app-container">
+        <header class="app-header">
+            <h1 id="app-title">FocusNow</h1>
+            <p class="subtitle">Mantén el enfoque en lo que importa</p>
+        </header>
+
+        <!-- Timer Section -->
+        <section class="timer-section glass-card" id="timer-card">
+            <div class="timer-display">
+                <span id="timer-minutes">25</span>:<span id="timer-seconds">00</span>
+            </div>
+            <div class="timer-controls">
+                <button id="btn-start" class="btn btn-primary">Iniciar</button>
+                <button id="btn-pause" class="btn btn-secondary">Pausar</button>
+                <button id="btn-reset" class="btn btn-tertiary">Reiniciar</button>
+            </div>
+            <div class="timer-status" id="timer-status-text">Tiempo de Enfoque</div>
+        </section>
+
+        <!-- Task Section -->
+        <section class="tasks-section glass-card">
+            <h2>Mis Tareas</h2>
+            
+            <div class="task-input-container">
+                <input type="text" id="new-task-input" placeholder="Agregar una nueva tarea..." aria-label="Nueva tarea">
+                <button id="btn-add-task" class="btn-icon" aria-label="Agregar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+
+            <ul class="task-list" id="task-list">
+                <!-- Tasks will be injected here -->
+                <li class="task-item empty-state">
+                    <span>No hay tareas aún. ¡Agrega una!</span>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Focus Mode Overlay (Hidden by default) -->
+        <div class="focus-overlay" id="focus-overlay">
+            <div class="focus-content">
+                <h2>Enfocado en:</h2>
+                <div class="current-task-display" id="current-task-text">Hacer ejercicio</div>
+                <div class="timer-display large">
+                    <span id="focus-minutes">25</span>:<span id="focus-seconds">00</span>
+                </div>
+                <button id="btn-exit-focus" class="btn btn-secondary">Salir del Modo Enfoque</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+</body>
+</html>

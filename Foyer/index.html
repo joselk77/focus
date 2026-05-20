@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Focus Reward - TDAH</title>
+    <meta name="description" content="Aplicación de enfoque con recompensas para personas con TDAH.">
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --text-color: #1a202c;
+            --accent-color: #6b46c1;
+            --accent-hover: #553c9a;
+            --success-color: #38a169;
+            --danger-color: #e53e3e;
+            --muted-text: #718096;
+            --border-color: rgba(255, 255, 255, 0.6);
+            --font-family: 'Inter', sans-serif;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        /* Themes */
+        [data-theme="dark"] {
+            --bg-color: #1a202c;
+            --card-bg: rgba(45, 55, 72, 0.7);
+            --text-color: #f7fafc;
+            --accent-color: #9f7aea;
+            --accent-hover: #b794f4;
+            --muted-text: #a0aec0;
+            --border-color: rgba(74, 85, 104, 0.4);
+        }
+
+        [data-theme="ocean"] {
+            --bg-color: #e6fffa;
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --text-color: #004445;
+            --accent-color: #319795;
+            --accent-hover: #2c7a7b;
+            --muted-text: #4a5568;
+            --border-color: rgba(49, 151, 149, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Blobs */
+        .blobs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.4;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .blob-1 {
+            width: 300px;
+            height: 300px;
+            background-color: #9f7aea;
+            top: -50px;
+            left: -50px;
+        }
+
+        .blob-2 {
+            width: 400px;
+            height: 400px;
+            background-color: #63b3ed;
+            bottom: -100px;
+            right: -50px;
+            animation-duration: 25s;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 100px) scale(1.1); }
+        }
+
+        /* Main Container */
+        .app-container {
+            width: 90%;
+            max-width: 450px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-color), #4299e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .coins-display {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            backdrop-filter: blur(5px);
+        }
+
+        .coin-icon {
+            color: #d69e2e;
+            font-size: 1.2rem;
+        }
+
+        /* Forms and Controls */
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--muted-text);
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] input[type="text"], [data-theme="dark"] input[type="number"] {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        [data-theme="dark"] .task-list {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+
+        [data-theme="dark"] .task-item {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .task-item:hover {
+            background: rgba(255, 255, 255, 0.6);
+            transform: translateX(3px);
+        }
+
+        .task-item.selected {
+            border-color: var(--accent-color);
+            background: rgba(107, 70, 193, 0.1);
+            font-weight: 600;
+        }
+
+        .task-item .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .task-item .delete-btn:hover {
+            opacity: 1;
+            background: rgba(229, 62, 62, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(107, 70, 193, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(107, 70, 193, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Active Task Screen */
+        .timer-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 1.5rem 0;
+            color: var(--text-color);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .task-name-display {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Store */
+        .store-items {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .store-item {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+
+        [data-theme="dark"] .store-item {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .item-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-info p {
+            font-size: 0.8rem;
+            color: var(--muted-text);
+        }
+
+        .item-price {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+        }
+
+        .modal p {
+            margin-bottom: 1.5rem;
+            color: var(--muted-text);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message-banner {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message-banner.show {
+            display: block;
+        }
+    </style>
+</head>
+<body data-theme="default">
+
+    <!-- Blobs Background -->
+    <div class="blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Main App -->
+    <main class="app-container">
+        <header>
+            <h1 id="brand-title">Focus Reward</h1>
+            <div class="coins-display" id="coins-display" title="Monedas disponibles">
+                <span class="coin-icon">🪙</span>
+                <span id="coin-count">0</span>
+            </div>
+        </header>
+
+        <!-- Message Banner -->
+        <div id="message-banner" class="message-banner"></div>
+
+        <!-- SCREEN: HOME -->
+        <section id="screen-home" class="screen active">
+            <!-- Add Task -->
+            <div class="form-group">
+                <label for="new-task">Agregar Tarea</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="new-task" placeholder="Escribe una nueva tarea..." autocomplete="off">
+                    <button id="btn-add-task" class="btn btn-primary" style="width: auto; padding: 0.75rem 1.25rem;">+</button>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <div class="form-group">
+                <label>Mis Tareas (selecciona una)</label>
+                <ul id="task-list" class="task-list">
+                    <!-- Tasks will be injected here -->
+                </ul>
+            </div>
+
+            <!-- Interval Input (Manual) -->
+            <div class="form-group">
+                <label for="check-interval">Intervalo de check-in (minutos)</label>
+                <input type="number" id="check-interval" min="1" max="60" value="5">
+            </div>
+
+            <button id="btn-start" class="btn btn-primary" disabled>Comenzar tarea</button>
+            
+            <div style="margin-top: 1rem;">
+                <button id="btn-go-store" class="btn btn-secondary">Ir a la Tienda</button>
+            </div>
+        </section>
+
+        <!-- SCREEN: ACTIVE TASK -->
+        <section id="screen-active" class="screen">
+            <p class="task-name-display" id="active-task-title">Tarea Activa</p>
+            <p style="color: var(--muted-text); font-size: 0.9rem;">Próximo check-in en:</p>
+            
+            <div class="timer-display" id="timer-display">05:00</div>
+
+            <button id="btn-complete" class="btn btn-success">Completar Tarea</button>
+            
+            <div class="controls-row">
+                <button id="btn-abandon" class="btn btn-danger">Abandonar</button>
+            </div>
+            
+            <p style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--muted-text);">
+                🔒 Tienda bloqueada durante la tarea
+            </p>
+        </section>
+
+        <!-- SCREEN: SUMMARY -->
+        <section id="screen-summary" class="screen">
+            <h2>¡Buen trabajo!</h2>
+            <p style="color: var(--muted-text); margin-bottom: 1.5rem;">Resumen de la sesión</p>
+            
+            <div style="text-align: left; background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <p><strong>Tarea:</strong> <span id="summary-task-name">-</span></p>
+                <p><strong>Tiempo total:</strong> <span id="summary-time">-</span></p>
+                <p><strong>Monedas ganadas:</strong> <span id="summary-coins">-</span> 🪙</p>
+            </div>
+
+            <button id="btn-home-from-summary" class="btn btn-primary">Nueva Tarea</button>
+            <div style="margin-top: 1rem;">
+                <button id="btn-store-from-summary" class="btn btn-secondary">Ver Tienda</button>
+            </div>
+        </section>
+
+        <!-- SCREEN: STORE -->
+        <section id="screen-store" class="screen">
+            <h2>Tienda de Recompensas</h2>
+            <p style="color: var(--muted-text); margin-bottom: 1.5rem;">Gasta tus monedas en mejoras visuales.</p>
+
+            <div class="store-items">
+                <!-- Item 1 -->
+                <div class="store-item">
+                    <div class="item-info">
+                        <h4>Tema Oscuro</h4>
+                        <p>Perfecto para la noche.</p>
+                    </div>
+                    <div class="item-price">
+                        <span>10</span> 🪙
+                        <button class="btn btn-primary btn-sm" id="btn-buy-dark" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; width: auto; margin-left: 0.5rem;">Comprar</button>
+                    </div>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="store-item">
+                    <div class="item-info">
+                        <h4>Tema Océano</h4>
+                        <p>Colores relajantes.</p>
+                    </div>
+                    <div class="item-price">
+                        <span>15</span> 🪙
+                        <button class="btn btn-primary btn-sm" id="btn-buy-ocean" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; width: auto; margin-left: 0.5rem;">Comprar</button>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="store-item">
+                    <div class="item-info">
+                        <h4>Sonido Premium</h4>
+                        <p>Notificación especial.</p>
+                    </div>
+                    <div class="item-price">
+                        <span>5</span> 🪙
+                        <button class="btn btn-primary btn-sm" id="btn-buy-sound" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; width: auto; margin-left: 0.5rem;">Comprar</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-home-from-store" class="btn btn-primary">Volver al Inicio</button>
+        </section>
+    </main>
+
+    <!-- Modal Check-in -->
+    <div class="modal-overlay" id="modal-checkin">
+        <div class="modal">
+            <h2>¿Sigues ahí?</h2>
+            <p id="modal-text">¿Sigues ejecutando la tarea?</p>
+            <div class="modal-buttons">
+                <button id="btn-checkin-yes" class="btn btn-success">¡Sí, sigo!</button>
+                <button id="btn-checkin-no" class="btn btn-danger">No, me distraje</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio -->
+    <audio id="beep-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        // State Management
+        let state = {
+            coins: parseInt(localStorage.getItem('focus_coins')) || 0,
+            unlockedRewards: JSON.parse(localStorage.getItem('focus_rewards')) || ['default'],
+            currentTheme: localStorage.getItem('focus_theme') || 'default',
+            tasks: JSON.parse(localStorage.getItem('focus_tasks')) || [],
+            selectedTaskIndex: null,
+            activeTask: null,
+            intervalMins: 5,
+            timerId: null,
+            timeLeft: 0,
+            startTime: null,
+            coinsEarnedThisSession: 0
+        };
+
+        // DOM Elements
+        const screens = {
+            home: document.getElementById('screen-home'),
+            active: document.getElementById('screen-active'),
+            summary: document.getElementById('screen-summary'),
+            store: document.getElementById('screen-store')
+        };
+        
+        const coinCountEl = document.getElementById('coin-count');
+        const newTaskInput = document.getElementById('new-task');
+        const taskListEl = document.getElementById('task-list');
+        const checkIntervalInput = document.getElementById('check-interval');
+        const timerDisplayEl = document.getElementById('timer-display');
+        const activeTaskTitleEl = document.getElementById('active-task-title');
+        const modalCheckin = document.getElementById('modal-checkin');
+        const modalText = document.getElementById('modal-text');
+        const messageBanner = document.getElementById('message-banner');
+        
+        // Buttons
+        const btnAddTask = document.getElementById('btn-add-task');
+        const btnStart = document.getElementById('btn-start');
+        const btnGoStore = document.getElementById('btn-go-store');
+        const btnComplete = document.getElementById('btn-complete');
+        const btnAbandon = document.getElementById('btn-abandon');
+        const btnHomeFromSummary = document.getElementById('btn-home-from-summary');
+        const btnStoreFromSummary = document.getElementById('btn-store-from-summary');
+        const btnHomeFromStore = document.getElementById('btn-home-from-store');
+        const btnCheckinYes = document.getElementById('btn-checkin-yes');
+        const btnCheckinNo = document.getElementById('btn-checkin-no');
+        
+        const btnBuyDark = document.getElementById('btn-buy-dark');
+        const btnBuyOcean = document.getElementById('btn-buy-ocean');
+        const btnBuySound = document.getElementById('btn-buy-sound');
+
+        const COSTS = {
+            dark: 10,
+            ocean: 15,
+            sound: 5
+        };
+
+        // Initialize
+        function init() {
+            updateCoins(0);
+            applyTheme(state.currentTheme);
+            updateStoreButtons();
+            renderTasks();
+            
+            // Event Listeners
+            btnAddTask.addEventListener('click', addTask);
+            newTaskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addTask();
+            });
+
+            checkIntervalInput.addEventListener('input', (e) => {
+                let val = parseInt(e.target.value);
+                if (val < 1) val = 1;
+                if (val > 60) val = 60;
+                state.intervalMins = val;
+            });
+
+            btnStart.addEventListener('click', startTask);
+            btnGoStore.addEventListener('click', () => switchScreen('store'));
+            btnComplete.addEventListener('click', completeTask);
+            btnAbandon.addEventListener('click', abandonTask);
+            btnHomeFromSummary.addEventListener('click', () => switchScreen('home'));
+            btnStoreFromSummary.addEventListener('click', () => switchScreen('store'));
+            btnHomeFromStore.addEventListener('click', () => switchScreen('home'));
+            
+            btnCheckinYes.addEventListener('click', () => handleCheckin(true));
+            btnCheckinNo.addEventListener('click', () => handleCheckin(false));
+
+            btnBuyDark.addEventListener('click', () => buyReward('dark', COSTS.dark));
+            btnBuyOcean.addEventListener('click', () => buyReward('ocean', COSTS.ocean));
+            btnBuySound.addEventListener('click', () => buyReward('sound', COSTS.sound));
+
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        // Screen Navigation
+        function switchScreen(screenName) {
+            Object.keys(screens).forEach(key => {
+                screens[key].classList.remove('active');
+            });
+            screens[screenName].classList.add('active');
+            hideMessage();
+        }
+
+        // Coins and Storage
+        function updateCoins(amount) {
+            state.coins += amount;
+            coinCountEl.textContent = state.coins;
+            localStorage.setItem('focus_coins', state.coins);
+        }
+
+        function saveRewards() {
+            localStorage.setItem('focus_rewards', JSON.stringify(state.unlockedRewards));
+        }
+
+        function saveTasks() {
+            localStorage.setItem('focus_tasks', JSON.stringify(state.tasks));
+        }
+
+        // Task List Management
+        function addTask() {
+            const text = newTaskInput.value.trim();
+            if (!text) return;
+            
+            state.tasks.push(text);
+            newTaskInput.value = '';
+            saveTasks();
+            renderTasks();
+        }
+
+        function deleteTask(index, event) {
+            event.stopPropagation(); // Prevent selecting the task
+            state.tasks.splice(index, 1);
+            if (state.selectedTaskIndex === index) {
+                state.selectedTaskIndex = null;
+                btnStart.disabled = true;
+            } else if (state.selectedTaskIndex > index) {
+                state.selectedTaskIndex--;
+            }
+            saveTasks();
+            renderTasks();
+        }
+
+        function selectTask(index) {
+            state.selectedTaskIndex = index;
+            renderTasks();
+            btnStart.disabled = false;
+        }
+
+        function renderTasks() {
+            taskListEl.innerHTML = '';
+            
+            if (state.tasks.length === 0) {
+                taskListEl.innerHTML = '<li style="text-align:center; color:var(--muted-text); padding:1rem;">No hay tareas. ¡Agrega una!</li>';
+                btnStart.disabled = true;
+                return;
+            }
+
+            state.tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = `task-item ${state.selectedTaskIndex === index ? 'selected' : ''}`;
+                li.innerHTML = `
+                    <span>${task}</span>
+                    <button class="delete-btn" title="Eliminar task">✕</button>
+                `;
+                
+                li.addEventListener('click', () => selectTask(index));
+                li.querySelector('.delete-btn').addEventListener('click', (e) => deleteTask(index, e));
+                
+                taskListEl.appendChild(li);
+            });
+        }
+
+        // Task Execution
+        function startTask() {
+            if (state.selectedTaskIndex === null) return;
+            
+            const taskName = state.tasks[state.selectedTaskIndex];
+            state.activeTask = taskName;
+            state.timeLeft = state.intervalMins * 60;
+            state.startTime = new Date();
+            state.coinsEarnedThisSession = 0;
+
+            activeTaskTitleEl.textContent = `Enfocado en: ${taskName}`;
+            updateTimerDisplay();
+            
+            switchScreen('active');
+            startTimer();
+        }
+
+        function startTimer() {
+            state.timerId = setInterval(() => {
+                state.timeLeft--;
+                updateTimerDisplay();
+
+                if (state.timeLeft <= 0) {
+                    clearInterval(state.timerId);
+                    showCheckin();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(state.timeLeft / 60);
+            const seconds = state.timeLeft % 60;
+            timerDisplayEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function showCheckin() {
+            modalText.textContent = `¿Sigues ejecutando la tarea: "${state.activeTask}"?`;
+            modalCheckin.classList.add('active');
+            
+            document.getElementById('beep-sound').play().catch(e => console.log('Audio play blocked'));
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Check-in de Enfoque", {
+                    body: `¿Sigues ejecutando: ${state.activeTask}?`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/2097/2097276.png"
+                });
+            }
+        }
+
+        function handleCheckin(isStillWorking) {
+            modalCheckin.classList.remove('active');
+            
+            if (isStillWorking) {
+                updateCoins(1);
+                state.coinsEarnedThisSession += 1;
+                showMessage('¡Genial! Sumas 1 moneda.', 'success');
+            } else {
+                showMessage('No te preocupes. ¡Intenta retomar el enfoque!', 'danger');
+            }
+
+            state.timeLeft = state.intervalMins * 60;
+            updateTimerDisplay();
+            startTimer();
+        }
+
+        function completeTask() {
+            clearInterval(state.timerId);
+            
+            // Calculate bonus
+            const bonus = 5;
+            updateCoins(bonus);
+            state.coinsEarnedThisSession += bonus;
+
+            // Prepare summary
+            const endTime = new Date();
+            const diffMs = endTime - state.startTime;
+            const diffMins = Math.round(diffMs / 60000);
+
+            document.getElementById('summary-task-name').textContent = state.activeTask;
+            document.getElementById('summary-time').textContent = `${diffMins} minutos`;
+            document.getElementById('summary-coins').textContent = state.coinsEarnedThisSession;
+
+            // Remove task from list
+            if (state.selectedTaskIndex !== null) {
+                state.tasks.splice(state.selectedTaskIndex, 1);
+                state.selectedTaskIndex = null;
+                saveTasks();
+                renderTasks();
+            }
+
+            switchScreen('summary');
+            state.activeTask = null;
+        }
+
+        function abandonTask() {
+            if (confirm('¿Seguro que quieres abandonar la tarea? No ganarás la bonificación final.')) {
+                clearInterval(state.timerId);
+                state.activeTask = null;
+                switchScreen('home');
+                showMessage('Tarea abandonada.', 'default');
+            }
+        }
+
+        // Store Logic
+        function buyReward(itemId, cost) {
+            if (state.coins < cost) {
+                alert('No tienes suficientes monedas.');
+                return;
+            }
+
+            if (state.unlockedRewards.includes(itemId)) {
+                applyTheme(itemId);
+                return;
+            }
+
+            updateCoins(-cost);
+            state.unlockedRewards.push(itemId);
+            saveRewards();
+            updateStoreButtons();
+            
+            if (itemId === 'dark' || itemId === 'ocean') {
+                applyTheme(itemId);
+            }
+            
+            showMessage(`¡Comprado con éxito!`, 'success');
+        }
+
+        function updateStoreButtons() {
+            if (state.unlockedRewards.includes('dark')) {
+                btnBuyDark.textContent = state.currentTheme === 'dark' ? 'Aplicado' : 'Aplicar';
+                btnBuyDark.className = state.currentTheme === 'dark' ? 'btn btn-success btn-sm' : 'btn btn-secondary btn-sm';
+            }
+            if (state.unlockedRewards.includes('ocean')) {
+                btnBuyOcean.textContent = state.currentTheme === 'ocean' ? 'Aplicado' : 'Aplicar';
+                btnBuyOcean.className = state.currentTheme === 'ocean' ? 'btn btn-success btn-sm' : 'btn btn-secondary btn-sm';
+            }
+            if (state.unlockedRewards.includes('sound')) {
+                btnBuySound.textContent = 'Desbloqueado';
+                btnBuySound.className = 'btn btn-success btn-sm';
+                btnBuySound.disabled = true;
+                document.getElementById('beep-sound').src = 'https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3';
+            }
+        }
+
+        function applyTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            state.currentTheme = themeName;
+            localStorage.setItem('focus_theme', themeName);
+            updateStoreButtons();
+        }
+
+        function showMessage(text, type = 'default') {
+            messageBanner.textContent = text;
+            messageBanner.className = 'message-banner show';
+            
+            if (type === 'success') {
+                messageBanner.style.background = 'rgba(56, 161, 105, 0.2)';
+                messageBanner.style.borderColor = '#38a169';
+            } else if (type === 'danger') {
+                messageBanner.style.background = 'rgba(229, 62, 62, 0.2)';
+                messageBanner.style.borderColor = '#e53e3e';
+            } else {
+                messageBanner.style.background = 'rgba(255, 255, 255, 0.5)';
+                messageBanner.style.borderColor = 'rgba(0,0,0,0.1)';
+            }
+
+            setTimeout(hideMessage, 3000);
+        }
+
+        function hideMessage() {
+            messageBanner.className = 'message-banner';
+        }
+
+        init();
+    </script>
+</body>
+</html>
